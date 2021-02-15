@@ -1,8 +1,9 @@
-import os
 import sys
-from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtCore import QUrl, QFileInfo
+import os
+from PyQt5 import QtCore, QtGui, QtWidgets, QtMultimedia
+from PyQt5.QtMultimediaWidgets import QVideoWidget
 from PyQt5.QtWidgets import QApplication, QMainWindow
+
 import cv2 as cv
 from imutils.video import VideoStream
 
@@ -102,29 +103,40 @@ class MainWindow(QMainWindow):
         self.creerGui()
 
     def creerGui(self):
+        self.setMaximumSize(1300,800)
+
         self.centralwidget = QtWidgets.QWidget(self)
         self.centralwidget.setObjectName("centralwidget")
-        self.verticalLayoutWidget = QtWidgets.QWidget(self.centralwidget)
-        self.verticalLayoutWidget.setGeometry(QtCore.QRect(10, 10, 1280, 771))
-        self.verticalLayoutWidget.setObjectName("verticalLayoutWidget")
+        self.setCentralWidget(self.centralwidget)
 
-        self.sections = QtWidgets.QVBoxLayout(self.verticalLayoutWidget)
+        self.sections = QtWidgets.QVBoxLayout()
         self.sections.setSizeConstraint(QtWidgets.QLayout.SetDefaultConstraint)
         self.sections.setContentsMargins(0, 0, 0, 0)
         self.sections.setSpacing(0)
         self.sections.setObjectName("sections")
 
-        self.conteneur_video = QtWidgets.QGroupBox(self.verticalLayoutWidget)
+        self.conteneur_video = QtWidgets.QGroupBox()
         self.conteneur_video.setMaximumSize(QtCore.QSize(1280, 600))
         self.conteneur_video.setObjectName("conteneur_video")
 
-        self.video = QtWidgets.QLabel(self.conteneur_video)
-        self.video.setGeometry(QtCore.QRect(160, 20, 871, 541))
-        # self.video.setPixmap(QtGui.QPixmap("./fgpvtnw0zbz11.jpg"))
-        self.video.setScaledContents(True)
-        self.video.setObjectName("video")
+        self.lecteur_video = QtMultimedia.QMediaPlayer(None, QtMultimedia.QMediaPlayer.VideoSurface)
+        self.lecteur_video.setMuted(True)
+        self.lecteur_video.error.connect(self.gererErreur)
 
-        self.conteneur_controles = QtWidgets.QGroupBox(self.verticalLayoutWidget)
+        self.flux_video = QVideoWidget()
+        self.flux_video.setAspectRatioMode(QtCore.Qt.KeepAspectRatio)
+        self.flux_video.setMaximumSize(QtCore.QSize(1280,600))
+        self.flux_video.setObjectName("flux_video")
+
+        self.message_video = QtWidgets.QLabel(self.conteneur_video)
+        self.message_video.setGeometry(QtCore.QRect(160, 20, 871, 541))
+        self.message_video.setAlignment(QtCore.Qt.AlignCenter)
+        self.message_video.setText("Sélectionnez un fichier vidéo à analyser ou bien un flux en direct depuis une caméra")
+        self.message_video.setScaledContents(True)
+        self.message_video.setObjectName("message_video")
+
+
+        self.conteneur_controles = QtWidgets.QGroupBox()
         self.conteneur_controles.setMaximumSize(QtCore.QSize(1280, 300))
         self.conteneur_controles.setObjectName("conteneur_controles")
 
@@ -136,8 +148,11 @@ class MainWindow(QMainWindow):
         self.btn_fichier = QtWidgets.QPushButton(self.controles_source)
         self.btn_fichier.setGeometry(QtCore.QRect(10, 20, 131, 31))
         self.btn_fichier.setObjectName("btn_fichier")
-
         self.btn_fichier.clicked.connect(self.naviguerFichiers)
+
+        self.nom_fichier = QtWidgets.QLabel(self.controles_source)
+        self.nom_fichier.setGeometry(QtCore.QRect(10, 55, 131, 25))
+        self.nom_fichier.setObjectName("nom_fichier")
 
         self.btn_source = QtWidgets.QPushButton(self.controles_source)
         self.btn_source.setGeometry(QtCore.QRect(10, 90, 131, 31))
@@ -187,7 +202,9 @@ class MainWindow(QMainWindow):
 
         self.sections.addWidget(self.conteneur_video)
         self.sections.addWidget(self.conteneur_controles)
-        self.setCentralWidget(self.centralwidget)
+        self.centralwidget.setLayout(self.sections)
+
+        self.lecteur_video.setVideoOutput(self.flux_video)
 
     def construireCheckboxesFiltres(self):
         self.checkboxes_filtres = []
@@ -207,16 +224,30 @@ class MainWindow(QMainWindow):
                 self.checkboxes_filtres.append(nouveau_filtre)
                 index_filtre += 1
 
+        # FONCTIONS POUR UN FICHIER VIDEO
     def naviguerFichiers(self):
-        nom_fichier = QtWidgets.QFileDialog.getOpenFileName(self, "Choisissez votre fichier vidéo", "",
-                                                "Videos Files (*.avi, *.mp4)")
-        nomExactFichier = os.path.split(nom_fichier[0])
+        nom_fichier, _ = QtWidgets.QFileDialog.getOpenFileName(self,
+                                       "Sélectionner un fichier",
+                                       os.getcwd(),
+                                       "Fichiers vidéo (*.mp4 *.avi *.mov *.qt *.wmv *.mkv)")
 
-        if nom_fichier:
-            nom_fichier = nomExactFichier[1]
-            print(nom_fichier)
+        self.chargerFichier(nom_fichier)
 
-        return nom_fichier
+    def chargerFichier(self, fichier):
+        if fichier != '':
+            self.nom_fichier.setText(os.path.split(fichier)[1])
+            self.sections.replaceWidget(self.conteneur_video, self.flux_video)
+            self.lecteur_video.setMedia(QtMultimedia.QMediaContent(QtCore.QUrl.fromLocalFile(fichier)))
+            self.lireVideo()
+
+    def lireVideo(self):
+        if self.lecteur_video.state() == QtMultimedia.QMediaPlayer.PlayingState:
+            self.lecteur_video.pause()
+        else:
+            self.lecteur_video.play()
+
+    def gererErreur(self):
+        print("Erreur: " + self.lecteur_video.errorString())
 
     def actionnerTousLesFiltres(self, etat):
         checked = True if QtCore.Qt.Checked == etat else False
