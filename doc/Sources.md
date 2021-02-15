@@ -1,8 +1,12 @@
 # Lien des sources du dossier d'analyse : 
-## Documentation sur le framework :	
+## Documentation sur le framework IA:	
 - http://imageai.org/
 ## Documentation sur les ressources graphiques :
 - https://opencv.org/
+## Librairie graphique Python:
+- https://pypi.org/project/PyQt5/
+## Outil de création d'interface:
+- https://build-system.fman.io/qt-designer-download
 ## Site pour le diagramme UML :
 - https://creately.com/
 ## Site pour la maquettte :
