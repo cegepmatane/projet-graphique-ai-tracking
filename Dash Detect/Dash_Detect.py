@@ -263,7 +263,6 @@ class MainWindow(QMainWindow):
             self.lecteur_video.setMedia(QtMultimedia.QMediaContent(QtCore.QUrl.fromLocalFile(fichier)))
             self.threadVideo.video = cv.VideoCapture(fichier)
             # self.lireVideo()
-
             self.threadpool.start(self.threadVideo)
 
     # CONTROLES DE LA LECTURE
@@ -293,20 +292,12 @@ class MainWindow(QMainWindow):
             filtre.setChecked(checked)
 
 
-class WorkerSignals(QtCore.QObject):
-    pause = QtCore.pyqtSignal(bool)
-
-
 class ThreadDetectionVideo(QtCore.QRunnable):
-    signals = WorkerSignals()
-
     def __init__(self, application):
         super(ThreadDetectionVideo, self).__init__()
-
-        self.detecteur = ObjectDetection()
         self.application = application
-
         self.execution_path = os.getcwd()
+        self.detecteur = ObjectDetection()
         self.video = None
         self.font = cv.FONT_HERSHEY_DUPLEX
         self.detecteur.setModelTypeAsYOLOv3()
@@ -319,10 +310,8 @@ class ThreadDetectionVideo(QtCore.QRunnable):
     @QtCore.pyqtSlot()
     def run(self):
         while True:
-            self.detecterObjets()
-
-            while self.en_pause:
-                time.sleep(0)
+            if not self.en_pause:
+                self.detecterObjets()
 
             if cv.waitKey(1) & 0xFF == ord('q') or self.est_arrete:
                 break
@@ -335,20 +324,20 @@ class ThreadDetectionVideo(QtCore.QRunnable):
 
     def detecterObjets(self):
         # Début de la lecture du temps pour les fps et lecture du flux
-        start = time.time()
-        ret, frame = self.video.read()
+        tempsDebut = time.time()
 
         # Analyse et détection des objets image par image
+        ret, frame = self.video.read()
         detected_image, detections = self.detecteur.detectObjectsFromImage(input_image=frame,
                                                                            input_type="array",
                                                                            output_type="array",
-                                                                           minimum_percentage_probability=50)
+                                                                           minimum_percentage_probability=90)
         # Calcule et affchage des fps
-        end = time.time()
-        seconds = end - start
-        fps = 1 / (seconds)
+        tempsFin = time.time()
+        secondes = tempsFin - tempsDebut
+        fps = 1 / secondes
         cv.putText(detected_image, str(round(fps)) + " fps", (7, 28), self.font, 1, (0, 0, 255), 3, cv.LINE_AA)
-        cv.imshow('Détection', detected_image)
+        cv.imshow('Detection', detected_image)
 
     def mettreEnPause(self):
         self.en_pause = True
