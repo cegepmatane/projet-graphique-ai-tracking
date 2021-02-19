@@ -33,7 +33,6 @@ custom = detector.CustomObjects(person=False) #Il est possible de mettre 80 obje
 filtreObjets = False
 font = cv2.FONT_HERSHEY_DUPLEX
 
-
 #Boucle principale
 while True:
     #Début de la lecture du temps pour les fps et lecture du flux
@@ -46,14 +45,6 @@ while True:
                                                                  output_type="array",
                                                                  minimum_percentage_probability=50)
 
-    #Pour chaque objet détecté, on dessine un rectangle avec le nom de l'objet et la certitude
-    for eachObject in detections:
-            #print(eachObject["name"], " : ", eachObject["percentage_probability"])
-            (x1, y1, x2, y2) = eachObject["box_points"]
-            cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 0, 255), 2)
-            cv2.putText(frame, eachObject["name"] + " " + str(round(eachObject["percentage_probability"], 2)) + "%",
-                       (x1 + 6, y1 - 6), font, 1.0, (0, 255, 0), 1)
-
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
@@ -63,10 +54,10 @@ while True:
     seconds = end - start
     fps = 1 / (seconds / 5)
     #print(str(round(seconds, 4)))
-    cv2.putText(frame, str(round(fps)) + " fps", (7, 28), font, 1, (0, 0, 255), 3, cv2.LINE_AA)
+    cv2.putText(detected_image, str(round(fps)) + " fps", (7, 28), font, 1, (0, 0, 255), 3, cv2.LINE_AA)
 
     #Ouverture de la fenetre finale opencv
-    cv2.imshow('Detection', frame)
+    cv2.imshow('Detection', detected_image)
 
 #Libération de la mémoire et destruction de la fênetre
 camera.release()
