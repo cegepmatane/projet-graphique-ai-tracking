@@ -4,6 +4,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets, QtMultimedia
 from PyQt5.QtMultimediaWidgets import QVideoWidget
 from PyQt5.QtWidgets import QApplication, QMainWindow
 
+import numpy as np
 import tensorflow as tf
 from imageai.Detection import ObjectDetection
 import cv2 as cv
@@ -111,13 +112,17 @@ FILTRES = [
 class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
+        self.largeur_fenetre = 1300
+        self.hauteur_fenetre = 800
         self.setGeometry(200, 100, 1300, 800)
-        self.setMaximumSize(1300,800)
+        self.setMaximumSize(self.largeur_fenetre, self.hauteur_fenetre)
         self.setWindowTitle("Dash Detect Version 0.1")
 
         self.threadpool = QtCore.QThreadPool()
         self.threadVideo = ThreadDetectionVideo(self)
         self.threadVideo.setAutoDelete(False)
+
+        self.threadVideo.signals.envoi_frame.connect(self.rafraichirFrameVideo)
 
         self.creerGui()
 
@@ -136,21 +141,21 @@ class MainWindow(QMainWindow):
         self.conteneur_video.setMaximumSize(QtCore.QSize(1280, 600))
         self.conteneur_video.setObjectName("conteneur_video")
 
-        self.lecteur_video = QtMultimedia.QMediaPlayer(None, QtMultimedia.QMediaPlayer.VideoSurface)
-        self.lecteur_video.setMuted(True)
-        self.lecteur_video.error.connect(self.gererErreur)
+        # self.lecteur_video = QtMultimedia.QMediaPlayer(None, QtMultimedia.QMediaPlayer.VideoSurface)
+        # self.lecteur_video.setMuted(True)
+        # self.lecteur_video.error.connect(self.gererErreur)
 
-        self.flux_video = QVideoWidget()
-        self.flux_video.setAspectRatioMode(QtCore.Qt.KeepAspectRatio)
-        self.flux_video.setMaximumSize(QtCore.QSize(1280,600))
-        self.flux_video.setObjectName("flux_video")
+        # self.flux_video = QVideoWidget()
+        # self.flux_video.setAspectRatioMode(QtCore.Qt.KeepAspectRatio)
+        # self.flux_video.setMaximumSize(QtCore.QSize(1280,600))
+        # self.flux_video.setObjectName("flux_video")
 
-        self.message_video = QtWidgets.QLabel(self.conteneur_video)
-        self.message_video.setGeometry(QtCore.QRect(160, 20, 871, 541))
-        self.message_video.setAlignment(QtCore.Qt.AlignCenter)
-        self.message_video.setText("Sélectionnez un fichier vidéo à analyser ou bien un flux en direct depuis une caméra")
-        self.message_video.setScaledContents(True)
-        self.message_video.setObjectName("message_video")
+        self.frame_video = QtWidgets.QLabel(self.conteneur_video)
+        self.frame_video.setGeometry(QtCore.QRect(160, 20, 871, 541))
+        self.frame_video.setAlignment(QtCore.Qt.AlignCenter)
+        self.frame_video.setText("Sélectionnez un fichier vidéo à analyser ou bien un flux en direct depuis une caméra")
+        self.frame_video.setScaledContents(True)
+        self.frame_video.setObjectName("frame_video")
 
 
         self.conteneur_controles = QtWidgets.QGroupBox()
@@ -227,7 +232,7 @@ class MainWindow(QMainWindow):
         self.sections.addWidget(self.conteneur_controles)
         self.centralwidget.setLayout(self.sections)
 
-        self.lecteur_video.setVideoOutput(self.flux_video)
+        # self.lecteur_video.setVideoOutput(self.flux_video)
 
     def construireCheckboxesFiltres(self):
         self.checkboxes_filtres = []
@@ -259,11 +264,27 @@ class MainWindow(QMainWindow):
     def chargerFichier(self, fichier):
         if fichier != '':
             self.nom_fichier.setText(os.path.split(fichier)[1])
-            self.sections.replaceWidget(self.conteneur_video, self.flux_video)
-            self.lecteur_video.setMedia(QtMultimedia.QMediaContent(QtCore.QUrl.fromLocalFile(fichier)))
+            self.frame_video.setText("")
+            # self.sections.replaceWidget(self.conteneur_video, self.flux_video)
+            # self.lecteur_video.setMedia(QtMultimedia.QMediaContent(QtCore.QUrl.fromLocalFile(fichier)))
             self.threadVideo.video = cv.VideoCapture(fichier)
             # self.lireVideo()
             self.threadpool.start(self.threadVideo)
+
+    @QtCore.pyqtSlot(np.ndarray)
+    def rafraichirFrameVideo(self, frame):
+        pixmap = self.convertirVersPixmap(frame)
+        self.frame_video.setPixmap(pixmap)
+
+    # Convertir une frame de VideoCapture de OpenCV vers une Pixmap utilisable par pyQt5
+    def convertirVersPixmap(self, image_cv):
+        image_rgb = cv.cvtColor(image_cv, cv.COLOR_BGR2RGB)
+        hauteur, largeur, canaux = image_rgb.shape
+        octets_par_ligne = canaux * largeur
+        image_format_qt = QtGui.QImage(image_rgb.data, largeur, hauteur, octets_par_ligne, QtGui.QImage.Format_RGB888)
+        image_redimensionnee = image_format_qt.scaled(self.largeur_fenetre, self.hauteur_fenetre, QtCore.Qt.KeepAspectRatio)
+        return QtGui.QPixmap.fromImage(image_redimensionnee)
+
 
     # CONTROLES DE LA LECTURE
 
@@ -282,8 +303,8 @@ class MainWindow(QMainWindow):
     #         self.lecteur_video.stop()
     #         self.threadVideo.arreter()
 
-    def gererErreur(self):
-        print("Erreur: " + self.lecteur_video.errorString())
+    # def gererErreur(self):
+    #    print("Erreur: " + self.lecteur_video.errorString())
 
     # CONTROLES DES FILTRES
     def actionnerTousLesFiltres(self, etat):
@@ -292,7 +313,13 @@ class MainWindow(QMainWindow):
             filtre.setChecked(checked)
 
 
+class Signals(QtCore.QObject):
+    envoi_frame = QtCore.pyqtSignal(np.ndarray)
+
+
 class ThreadDetectionVideo(QtCore.QRunnable):
+    signals = Signals()
+
     def __init__(self, application):
         super(ThreadDetectionVideo, self).__init__()
         self.application = application
@@ -313,31 +340,33 @@ class ThreadDetectionVideo(QtCore.QRunnable):
             if not self.en_pause:
                 self.detecterObjets()
 
-            if cv.waitKey(1) & 0xFF == ord('q') or self.est_arrete:
+            if cv.waitKey(1) & self.est_arrete:
                 break
 
         # Libération de la mémoire et destruction de la fênetre
         self.video.release()
-        cv.destroyAllWindows()
+        # cv.destroyAllWindows()
 
         self.est_arrete = False
 
     def detecterObjets(self):
         # Début de la lecture du temps pour les fps et lecture du flux
-        tempsDebut = time.time()
+        temps_debut = time.time()
 
         # Analyse et détection des objets image par image
         ret, frame = self.video.read()
         detected_image, detections = self.detecteur.detectObjectsFromImage(input_image=frame,
                                                                            input_type="array",
                                                                            output_type="array",
-                                                                           minimum_percentage_probability=90)
+                                                                           minimum_percentage_probability=60)
         # Calcule et affchage des fps
-        tempsFin = time.time()
-        secondes = tempsFin - tempsDebut
+        temps_fin = time.time()
+        secondes = temps_fin - temps_debut
         fps = 1 / secondes
         cv.putText(detected_image, str(round(fps)) + " fps", (7, 28), self.font, 1, (0, 0, 255), 3, cv.LINE_AA)
-        cv.imshow('Detection', detected_image)
+
+        if ret:
+            self.signals.envoi_frame.emit(detected_image)
 
     def mettreEnPause(self):
         self.en_pause = True
