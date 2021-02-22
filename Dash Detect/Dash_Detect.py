@@ -1,7 +1,6 @@
 import sys
 import os
-from PyQt5 import QtCore, QtGui, QtWidgets, QtMultimedia
-from PyQt5.QtMultimediaWidgets import QVideoWidget
+from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QApplication, QMainWindow
 
 import numpy as np
@@ -264,12 +263,14 @@ class MainWindow(QMainWindow):
             self.threadVideo.video = cv.VideoCapture(fichier)
             # self.lireVideo()
             self.threadpool.start(self.threadVideo)
+            self.frame_video.setText("Chargement en cours...Merci de patienter !")
 
     def chargerWebcam(self):
         print("chargerWebcam")
         camera = cv.VideoCapture(0, cv.CAP_DSHOW)
         self.threadVideo.video = camera
         self.threadpool.start(self.threadVideo)
+        self.frame_video.setText("Chargement en cours...Merci de patienter !")
 
     @QtCore.pyqtSlot(np.ndarray)
     def rafraichirFrameVideo(self, frame):
