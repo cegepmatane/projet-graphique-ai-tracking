@@ -171,6 +171,7 @@ class MainWindow(QMainWindow):
         self.btn_source = QtWidgets.QPushButton(self.controles_source)
         self.btn_source.setGeometry(QtCore.QRect(10, 90, 131, 31))
         self.btn_source.setObjectName("btn_source")
+        self.btn_source.clicked.connect(self.chargerWebcam)
 
         self.controles_lecture = QtWidgets.QFrame(self.conteneur_controles)
         self.controles_lecture.setGeometry(QtCore.QRect(170, 20, 161, 171))
@@ -263,6 +264,12 @@ class MainWindow(QMainWindow):
             self.threadVideo.video = cv.VideoCapture(fichier)
             # self.lireVideo()
             self.threadpool.start(self.threadVideo)
+
+    def chargerWebcam(self):
+        print("chargerWebcam")
+        camera = cv.VideoCapture(0, cv.CAP_DSHOW)
+        self.threadVideo.video = camera
+        self.threadpool.start(self.threadVideo)
 
     @QtCore.pyqtSlot(np.ndarray)
     def rafraichirFrameVideo(self, frame):
@@ -363,7 +370,6 @@ class ThreadDetectionVideo(QtCore.QRunnable):
         #si la checkbox est cochée
         elif etat == 2:
             self.filtres[checkbox.text()] = "valid"
-
 
 application = QApplication(sys.argv)
 window = MainWindow()
