@@ -121,10 +121,12 @@ class MainWindow(QMainWindow):
         self.threadpool = QtCore.QThreadPool()
         self.threadVideo = ThreadDetectionVideo(self)
         self.threadVideo.setAutoDelete(False)
-
         self.threadVideo.signals.envoi_frame.connect(self.rafraichirFrameVideo)
 
         self.creerGui()
+
+        # Activation de tous les filtres au démarrage
+        self.tous_filtre.setChecked(True)
 
     def creerGui(self):
         self.centralwidget = QtWidgets.QWidget(self)
@@ -141,22 +143,12 @@ class MainWindow(QMainWindow):
         self.conteneur_video.setMaximumSize(QtCore.QSize(1280, 600))
         self.conteneur_video.setObjectName("conteneur_video")
 
-        # self.lecteur_video = QtMultimedia.QMediaPlayer(None, QtMultimedia.QMediaPlayer.VideoSurface)
-        # self.lecteur_video.setMuted(True)
-        # self.lecteur_video.error.connect(self.gererErreur)
-
-        # self.flux_video = QVideoWidget()
-        # self.flux_video.setAspectRatioMode(QtCore.Qt.KeepAspectRatio)
-        # self.flux_video.setMaximumSize(QtCore.QSize(1280,600))
-        # self.flux_video.setObjectName("flux_video")
-
         self.frame_video = QtWidgets.QLabel(self.conteneur_video)
         self.frame_video.setGeometry(QtCore.QRect(160, 20, 871, 541))
         self.frame_video.setAlignment(QtCore.Qt.AlignCenter)
         self.frame_video.setText("Sélectionnez un fichier vidéo à analyser ou bien un flux en direct depuis une caméra")
         self.frame_video.setScaledContents(True)
         self.frame_video.setObjectName("frame_video")
-
 
         self.conteneur_controles = QtWidgets.QGroupBox()
         self.conteneur_controles.setMaximumSize(QtCore.QSize(1280, 300))
@@ -232,8 +224,6 @@ class MainWindow(QMainWindow):
         self.sections.addWidget(self.conteneur_controles)
         self.centralwidget.setLayout(self.sections)
 
-        # self.lecteur_video.setVideoOutput(self.flux_video)
-
     def construireCheckboxesFiltres(self):
         self.checkboxes_filtres = []
         index_filtre = 0
@@ -242,13 +232,16 @@ class MainWindow(QMainWindow):
             for j in range(COLONNES_FILTRES):
                 if index_filtre >= len(FILTRES):
                     return
-                chaine_filtre = FILTRES[index_filtre]
                 x_offset = 85 * (j + 1)
                 y_offset = 25 * (i + 1)
                 nouveau_filtre = QtWidgets.QCheckBox(self.controles_filtres)
                 nouveau_filtre.setGeometry(QtCore.QRect(x_offset, y_offset, 85, 20))
-                nouveau_filtre.setObjectName("filtre_" + chaine_filtre)
-                nouveau_filtre.setText(chaine_filtre)
+                nouveau_filtre.setObjectName("filtre_" + FILTRES[index_filtre])
+                nouveau_filtre.setText(FILTRES[index_filtre])
+                # Si une checkbox change d'état, les filtres de détection sont modifiés
+                nouveau_filtre.stateChanged.connect(
+                    lambda etat, checkbox=nouveau_filtre: self.threadVideo.definirFiltres(etat, checkbox)
+                )
                 self.checkboxes_filtres.append(nouveau_filtre)
                 index_filtre += 1
 
@@ -285,34 +278,15 @@ class MainWindow(QMainWindow):
         image_redimensionnee = image_format_qt.scaled(self.largeur_fenetre, self.hauteur_fenetre, QtCore.Qt.KeepAspectRatio)
         return QtGui.QPixmap.fromImage(image_redimensionnee)
 
-
-    # CONTROLES DE LA LECTURE
-
-    # def lireVideo(self):
-    #     if self.lecteur_video.state() == QtMultimedia.QMediaPlayer.PausedState or QtMultimedia.QMediaPlayer.StoppedState:
-    #         self.lecteur_video.play()
-    #         self.threadVideo.mettreEnMarche()
-    #
-    # def mettreEnPauseVideo(self):
-    #     if self.lecteur_video.state() == QtMultimedia.QMediaPlayer.PlayingState:
-    #         self.lecteur_video.pause()
-    #         self.threadVideo.mettreEnPause()
-    #
-    # def stopperVideo(self):
-    #     if self.lecteur_video.state() == QtMultimedia.QMediaPlayer.PlayingState or QtMultimedia.QMediaPlayer.PausedState:
-    #         self.lecteur_video.stop()
-    #         self.threadVideo.arreter()
-
-    # def gererErreur(self):
-    #    print("Erreur: " + self.lecteur_video.errorString())
-
     # CONTROLES DES FILTRES
     def actionnerTousLesFiltres(self, etat):
-        checked = True if QtCore.Qt.Checked == etat else False
+        coche = True if QtCore.Qt.Checked == etat else False
         for filtre in self.checkboxes_filtres:
-            filtre.setChecked(checked)
+            filtre.setChecked(coche)
+            # self.threadVideo.definirFiltres(filtre, coche)
 
 
+# Les signaux sont définis dans une classe séparée car il faut qu'il soient lancé par un QObject
 class Signals(QtCore.QObject):
     envoi_frame = QtCore.pyqtSignal(np.ndarray)
 
@@ -327,26 +301,25 @@ class ThreadDetectionVideo(QtCore.QRunnable):
         self.detecteur = ObjectDetection()
         self.video = None
         self.font = cv.FONT_HERSHEY_DUPLEX
-        self.detecteur.setModelTypeAsYOLOv3()
-        self.detecteur.setModelPath(os.path.join(self.execution_path, "yolo.h5"))
+        self.detecteur.setModelTypeAsRetinaNet()
+        self.detecteur.setModelPath(os.path.join(self.execution_path, "resnet50_coco_best_v2.1.0.h5"))
         self.detecteur.loadModel(detection_speed="flash")
 
         self.en_pause = False
         self.est_arrete = False
+
+        self.filtres = {}
 
     @QtCore.pyqtSlot()
     def run(self):
         while True:
             if not self.en_pause:
                 self.detecterObjets()
-
             if cv.waitKey(1) & self.est_arrete:
                 break
 
         # Libération de la mémoire et destruction de la fênetre
         self.video.release()
-        # cv.destroyAllWindows()
-
         self.est_arrete = False
 
     def detecterObjets(self):
@@ -355,7 +328,13 @@ class ThreadDetectionVideo(QtCore.QRunnable):
 
         # Analyse et détection des objets image par image
         ret, frame = self.video.read()
-        detected_image, detections = self.detecteur.detectObjectsFromImage(input_image=frame,
+
+        # Syntaxe à utiliser pour définir les objets dans de la détection sélective
+        # filtres = {
+        #     'person': 'valid'
+        # }
+        detected_image, detections = self.detecteur.detectObjectsFromImage(custom_objects=self.filtres,
+                                                                           input_image=frame,
                                                                            input_type="array",
                                                                            output_type="array",
                                                                            minimum_percentage_probability=60)
@@ -376,6 +355,14 @@ class ThreadDetectionVideo(QtCore.QRunnable):
 
     def arreter(self):
         self.est_arrete = True
+
+    def definirFiltres(self, etat, checkbox):
+        #Si la checkbox est décochée
+        if etat == 0:
+            self.filtres[checkbox.text()] = "invalid"
+        #si la checkbox est cochée
+        elif etat == 2:
+            self.filtres[checkbox.text()] = "valid"
 
 
 application = QApplication(sys.argv)
