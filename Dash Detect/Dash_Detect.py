@@ -1,6 +1,7 @@
 import sys
 import os
 from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QApplication, QMainWindow
 
 import numpy as np
@@ -115,7 +116,8 @@ class MainWindow(QMainWindow):
         self.hauteur_fenetre = 800
         self.setGeometry(200, 100, 1300, 800)
         self.setMaximumSize(self.largeur_fenetre, self.hauteur_fenetre)
-        self.setWindowTitle("Dash Detect Version 0.1")
+        self.setWindowTitle("Dash Detect Version 0.2")
+        self.setWindowIcon(QIcon("logo.png"))
 
         self.threadpool = QtCore.QThreadPool()
         self.threadVideo = ThreadDetectionVideo(self)
@@ -265,12 +267,14 @@ class MainWindow(QMainWindow):
             self.threadpool.start(self.threadVideo)
             self.frame_video.setText("Chargement en cours...Merci de patienter !")
 
+
     def chargerWebcam(self):
         print("chargerWebcam")
         camera = cv.VideoCapture(0, cv.CAP_DSHOW)
         self.threadVideo.video = camera
         self.threadpool.start(self.threadVideo)
         self.frame_video.setText("Chargement en cours...Merci de patienter !")
+
 
     @QtCore.pyqtSlot(np.ndarray)
     def rafraichirFrameVideo(self, frame):
