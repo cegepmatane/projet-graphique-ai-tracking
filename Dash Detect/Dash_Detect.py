@@ -118,6 +118,7 @@ class MainWindow(QMainWindow):
         self.setMaximumSize(self.largeur_fenetre, self.hauteur_fenetre)
         self.setWindowTitle("Dash Detect Version 0.2")
         self.setWindowIcon(QIcon("logo.png"))
+        self.gif = QtGui.QMovie("chargement.gif")
 
         self.threadpool = QtCore.QThreadPool()
         self.threadVideo = ThreadDetectionVideo(self)
@@ -151,6 +152,11 @@ class MainWindow(QMainWindow):
         self.frame_video.setScaledContents(True)
         self.frame_video.setObjectName("frame_video")
 
+        self.gif_chargement = QtWidgets.QLabel(self.conteneur_video)
+        self.gif_chargement.setGeometry(1, 1, 2475, 100)
+        self.gif_chargement.setAlignment(QtCore.Qt.AlignCenter)
+        self.gif_chargement.setObjectName("frame_gif_chargement")
+
         self.conteneur_controles = QtWidgets.QGroupBox()
         self.conteneur_controles.setMaximumSize(QtCore.QSize(1280, 300))
         self.conteneur_controles.setObjectName("conteneur_controles")
@@ -168,11 +174,13 @@ class MainWindow(QMainWindow):
         self.nom_fichier = QtWidgets.QLabel(self.controles_source)
         self.nom_fichier.setGeometry(QtCore.QRect(10, 55, 131, 25))
         self.nom_fichier.setObjectName("nom_fichier")
+        self.btn_fichier.setToolTip("Appuyer sur Stop pour relancer une analyse")
 
         self.btn_source = QtWidgets.QPushButton(self.controles_source)
         self.btn_source.setGeometry(QtCore.QRect(10, 90, 131, 31))
         self.btn_source.setObjectName("btn_source")
         self.btn_source.clicked.connect(self.chargerWebcam)
+        self.btn_source.setToolTip("Appuyer sur Stop pour relancer une analyse")
 
         self.controles_lecture = QtWidgets.QFrame(self.conteneur_controles)
         self.controles_lecture.setGeometry(QtCore.QRect(170, 20, 161, 171))
@@ -266,20 +274,31 @@ class MainWindow(QMainWindow):
             # self.lireVideo()
             self.threadpool.start(self.threadVideo)
             self.frame_video.setText("Chargement en cours...Merci de patienter !")
-
+            self.btn_source.setDisabled(True)
+            self.btn_fichier.setDisabled(True)
+            self.gif_chargement.setVisible(True)
+            self.gif_chargement.setMovie(self.gif)
+            self.gif.start()
 
     def chargerWebcam(self):
-        print("chargerWebcam")
+        #print("chargerWebcam")
         camera = cv.VideoCapture(0, cv.CAP_DSHOW)
         self.threadVideo.video = camera
         self.threadpool.start(self.threadVideo)
         self.frame_video.setText("Chargement en cours...Merci de patienter !")
-
+        self.btn_fichier.setDisabled(True)
+        self.btn_source.setDisabled(True)
+        self.gif_chargement.setVisible(True)
+        self.gif_chargement.setMovie(self.gif)
+        self.gif.start()
 
     @QtCore.pyqtSlot(np.ndarray)
     def rafraichirFrameVideo(self, frame):
         pixmap = self.convertirVersPixmap(frame)
         self.frame_video.setPixmap(pixmap)
+        self.btn_fichier.setDisabled(False)
+        self.btn_source.setDisabled(False)
+        self.gif_chargement.setVisible(False)
 
     # Convertir une frame de VideoCapture de OpenCV vers une Pixmap utilisable par pyQt5
     def convertirVersPixmap(self, image_cv):
@@ -315,7 +334,7 @@ class ThreadDetectionVideo(QtCore.QRunnable):
         self.font = cv.FONT_HERSHEY_DUPLEX
         self.detecteur.setModelTypeAsRetinaNet()
         self.detecteur.setModelPath(os.path.join(self.execution_path, "resnet50_coco_best_v2.1.0.h5"))
-        self.detecteur.loadModel(detection_speed="flash")
+        self.detecteur.loadModel(detection_speed="fast")
 
         self.en_pause = False
         self.est_arrete = False
@@ -353,6 +372,7 @@ class ThreadDetectionVideo(QtCore.QRunnable):
         # Calcule et affchage des fps
         temps_fin = time.time()
         secondes = temps_fin - temps_debut
+        #print(secondes)
         fps = 1 / secondes
         cv.putText(detected_image, str(round(fps)) + " fps", (7, 28), self.font, 1, (0, 0, 255), 3, cv.LINE_AA)
 
