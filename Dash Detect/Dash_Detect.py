@@ -3,25 +3,12 @@ import os
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QApplication, QMainWindow
-
+import breeze_ressources
 import numpy as np
 import tensorflow as tf
 from imageai.Detection import ObjectDetection
 import cv2 as cv
 import time
-
-#Configuration pour eviter les erreur "CUBLAS_STATUS_ALLOC_FAILED"
-gpus = tf.config.experimental.list_physical_devices('GPU')
-if gpus:
-    try:
-        # Actuellement, la taille de la memoire a besoin d'etre la meme sur les 2 GPU
-        for gpu in gpus:
-            tf.config.experimental.set_memory_growth(gpu, True)
-        logical_gpus = tf.config.experimental.list_logical_devices('GPU')
-        print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
-    except RuntimeError as e:
-        # La taille de la memoire doit etre calibré avant l'initialisation du GPU
-        print(e)
 
 COLONNES_FILTRES = 9
 LIGNES_FILTRES = 9
@@ -137,8 +124,8 @@ class MainWindow(QMainWindow):
 
         self.sections = QtWidgets.QVBoxLayout()
         self.sections.setSizeConstraint(QtWidgets.QLayout.SetDefaultConstraint)
-        self.sections.setContentsMargins(0, 0, 0, 0)
-        self.sections.setSpacing(0)
+        self.sections.setContentsMargins(10, 10, 10, 10)
+        self.sections.setSpacing(5)
         self.sections.setObjectName("sections")
 
         self.conteneur_video = QtWidgets.QGroupBox()
@@ -146,7 +133,7 @@ class MainWindow(QMainWindow):
         self.conteneur_video.setObjectName("conteneur_video")
 
         self.frame_video = QtWidgets.QLabel(self.conteneur_video)
-        self.frame_video.setGeometry(QtCore.QRect(160, 20, 871, 541))
+        self.frame_video.setGeometry(QtCore.QRect(200, 10, 871, 460))
         self.frame_video.setAlignment(QtCore.Qt.AlignCenter)
         self.frame_video.setText("Sélectionnez un fichier vidéo à analyser ou bien un flux en direct depuis une caméra")
         self.frame_video.setScaledContents(True)
@@ -206,17 +193,16 @@ class MainWindow(QMainWindow):
         self.controles_filtres = QtWidgets.QGroupBox(self.conteneur_controles)
         self.controles_filtres.setGeometry(QtCore.QRect(340, 20, 931, 271))
         self.controles_filtres.setObjectName("controles_filtres")
+
         self.tous_filtre = QtWidgets.QCheckBox(self.controles_filtres)
         self.tous_filtre.setGeometry(QtCore.QRect(20, 70, 50, 20))
         self.tous_filtre.setObjectName("tous_filtre")
 
         self.tous_filtre.stateChanged.connect(self.actionnerTousLesFiltres)
 
-        self.filtres = QtWidgets.QFrame(self.controles_filtres)
-        self.filtres.setGeometry(QtCore.QRect(170, 20, 161, 271))
-        self.filtres.setFrameShape(QtWidgets.QFrame.StyledPanel)
-        self.filtres.setFrameShadow(QtWidgets.QFrame.Raised)
-        self.filtres.setObjectName("filtres")
+        # self.filtres = QtWidgets.QFrame(self.controles_filtres)
+        # self.filtres.setGeometry(QtCore.QRect(170, 20, 161, 271))
+        # self.filtres.setObjectName("filtres")
         self.construireCheckboxesFiltres()
 
         # Attribution des noms
@@ -232,6 +218,7 @@ class MainWindow(QMainWindow):
 
         self.sections.addWidget(self.conteneur_video)
         self.sections.addWidget(self.conteneur_controles)
+
         self.centralwidget.setLayout(self.sections)
 
     def construireCheckboxesFiltres(self):
@@ -242,7 +229,7 @@ class MainWindow(QMainWindow):
             for j in range(COLONNES_FILTRES):
                 if index_filtre >= len(FILTRES):
                     return
-                x_offset = 85 * (j + 1)
+                x_offset = 90 * (j + 1)
                 y_offset = 25 * (i + 1)
                 nouveau_filtre = QtWidgets.QCheckBox(self.controles_filtres)
                 nouveau_filtre.setGeometry(QtCore.QRect(x_offset, y_offset, 85, 20))
@@ -314,7 +301,6 @@ class MainWindow(QMainWindow):
         coche = True if QtCore.Qt.Checked == etat else False
         for filtre in self.checkboxes_filtres:
             filtre.setChecked(coche)
-            # self.threadVideo.definirFiltres(filtre, coche)
 
 
 # Les signaux sont définis dans une classe séparée car il faut qu'il soient lancé par un QObject
@@ -389,14 +375,35 @@ class ThreadDetectionVideo(QtCore.QRunnable):
         self.est_arrete = True
 
     def definirFiltres(self, etat, checkbox):
-        #Si la checkbox est décochée
+        # Si la checkbox est décochée
         if etat == 0:
             self.filtres[checkbox.text()] = "invalid"
-        #si la checkbox est cochée
+        # si la checkbox est cochée
         elif etat == 2:
             self.filtres[checkbox.text()] = "valid"
 
+
+# Configuration pour eviter les erreur "CUBLAS_STATUS_ALLOC_FAILED"
+gpus = tf.config.experimental.list_physical_devices('GPU')
+if gpus:
+    try:
+        # Actuellement, la taille de la memoire a besoin d'etre la meme sur les 2 GPU
+        for gpu in gpus:
+            tf.config.experimental.set_memory_growth(gpu, True)
+        logical_gpus = tf.config.experimental.list_logical_devices('GPU')
+        print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
+    except RuntimeError as e:
+        # La taille de la memoire doit etre calibré avant l'initialisation du GPU
+        print(e)
+
 application = QApplication(sys.argv)
+
+# Définition du thème
+fichier_style = QtCore.QFile(":/dark.qss")
+fichier_style.open(QtCore.QFile.ReadOnly | QtCore.QFile.Text)
+stream = QtCore.QTextStream(fichier_style)
+application.setStyleSheet(stream.readAll())
+
 window = MainWindow()
 window.show()
 sys.exit(application.exec_())
