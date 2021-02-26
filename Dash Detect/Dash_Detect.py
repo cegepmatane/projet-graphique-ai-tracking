@@ -255,26 +255,21 @@ class MainWindow(QMainWindow):
         if fichier != '':
             self.nom_fichier.setText(os.path.split(fichier)[1])
             self.frame_video.setText("")
-            # self.sections.replaceWidget(self.conteneur_video, self.flux_video)
-            # self.lecteur_video.setMedia(QtMultimedia.QMediaContent(QtCore.QUrl.fromLocalFile(fichier)))
             self.threadVideo.video = cv.VideoCapture(fichier)
-            # self.lireVideo()
             self.threadpool.start(self.threadVideo)
-            self.frame_video.setText("Chargement en cours...Merci de patienter !")
-            self.btn_source.setDisabled(True)
-            self.btn_fichier.setDisabled(True)
-            self.gif_chargement.setVisible(True)
-            self.gif_chargement.setMovie(self.gif)
-            self.gif.start()
+            self.entrerEnChargement()
 
     def chargerWebcam(self):
-        #print("chargerWebcam")
+        # print("chargerWebcam")
         camera = cv.VideoCapture(0, cv.CAP_DSHOW)
         self.threadVideo.video = camera
         self.threadpool.start(self.threadVideo)
+        self.entrerEnChargement()
+
+    def entrerEnChargement(self):
         self.frame_video.setText("Chargement en cours...Merci de patienter !")
-        self.btn_fichier.setDisabled(True)
         self.btn_source.setDisabled(True)
+        self.btn_fichier.setDisabled(True)
         self.gif_chargement.setVisible(True)
         self.gif_chargement.setMovie(self.gif)
         self.gif.start()
@@ -358,7 +353,7 @@ class ThreadDetectionVideo(QtCore.QRunnable):
         # Calcule et affchage des fps
         temps_fin = time.time()
         secondes = temps_fin - temps_debut
-        #print(secondes)
+        # print(secondes)
         fps = 1 / secondes
         cv.putText(detected_image, str(round(fps)) + " fps", (7, 28), self.font, 1, (0, 0, 255), 3, cv.LINE_AA)
 
