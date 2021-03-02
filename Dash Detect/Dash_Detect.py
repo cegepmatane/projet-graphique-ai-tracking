@@ -2,7 +2,7 @@ import sys
 import os
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QApplication, QMainWindow
+from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox
 import breeze_ressources
 import numpy as np
 import tensorflow as tf
@@ -157,6 +157,23 @@ class MainWindow(QMainWindow):
         self.btn_fichier.setGeometry(QtCore.QRect(10, 20, 131, 31))
         self.btn_fichier.setObjectName("btn_fichier")
         self.btn_fichier.clicked.connect(self.naviguerFichiers)
+
+        def afficher_information():
+            #print("ok message info")
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Information)
+            msg.setText("Logiciel fait par Hy-Vong Georges Dit Rap et Guillaume d'Albignac")
+            msg.setInformativeText("| © 2021 | Cégep de Matane |")
+            msg.setWindowTitle("Informations sur Dash Detect")
+            msg.setStandardButtons(QMessageBox.Ok)
+            msg.exec()
+
+        self.btn_info = QtWidgets.QPushButton(self.conteneur_controles)
+        self.btn_info.setGeometry(QtCore.QRect(20, 260, 131, 31))
+        self.btn_info.setText("About ⓘ")
+        self.btn_info.setToolTip("Informations sur ce logiciel")
+        self.btn_info.setObjectName("bouton_informatioms")
+        self.btn_info.clicked.connect(afficher_information)
 
         self.nom_fichier = QtWidgets.QLabel(self.controles_source)
         self.nom_fichier.setGeometry(QtCore.QRect(10, 55, 131, 25))
