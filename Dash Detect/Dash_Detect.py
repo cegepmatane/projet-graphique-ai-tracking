@@ -158,6 +158,12 @@ class MainWindow(QMainWindow):
         self.btn_fichier.setObjectName("btn_fichier")
         self.btn_fichier.clicked.connect(self.naviguerFichiers)
 
+        """self.choix_modele = QtWidgets.QComboBox(self.conteneur_controles)
+        self.choix_modele.setGeometry(QtCore.QRect(20, 175, 131, 31))
+        self.choix_modele.setObjectName("selecteur_modele_detection")
+        self.choix_modele.addItems(["Resnet 50", "Yolo V3", "Tiny Yolo V3"])
+        self.choix_modele.setDisabled(True)"""
+
         def afficher_information():
             #print("ok message info")
             msg = QMessageBox()
@@ -195,16 +201,19 @@ class MainWindow(QMainWindow):
         self.btn_lecture.setGeometry(QtCore.QRect(10, 20, 61, 61))
         self.btn_lecture.setObjectName("btn_lecture")
         self.btn_lecture.clicked.connect(self.threadVideo.mettreEnMarche)
+        self.btn_lecture.setIcon(QIcon("play.ico"))
 
         self.btn_pause = QtWidgets.QPushButton(self.controles_lecture)
         self.btn_pause.setGeometry(QtCore.QRect(90, 20, 61, 61))
         self.btn_pause.setObjectName("btn_pause")
         self.btn_pause.clicked.connect(self.threadVideo.mettreEnPause)
+        self.btn_pause.setIcon(QIcon("pause.ico"))
 
         self.btn_stop = QtWidgets.QPushButton(self.controles_lecture)
         self.btn_stop.setGeometry(QtCore.QRect(10, 90, 141, 31))
         self.btn_stop.setObjectName("btn_stop")
         self.btn_stop.clicked.connect(self.threadVideo.arreter)
+        self.btn_stop.setIcon(QIcon("stop.ico"))
 
 
         self.controles_filtres = QtWidgets.QGroupBox(self.conteneur_controles)
@@ -227,9 +236,9 @@ class MainWindow(QMainWindow):
         self.conteneur_controles.setTitle("Panneau de contrôle")
         self.btn_fichier.setText("Fichier vidéo")
         self.btn_source.setText("Source vidéo")
-        self.btn_lecture.setText("Lire")
-        self.btn_pause.setText("Pause")
-        self.btn_stop.setText("Stop")
+        #self.btn_lecture.setText("Lire")
+        #self.btn_pause.setText("Pause")
+        #self.btn_stop.setText("Stop")
         self.controles_filtres.setTitle("Filtres de détection")
         self.tous_filtre.setText("Tous")
 
