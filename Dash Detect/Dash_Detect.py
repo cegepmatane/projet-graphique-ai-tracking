@@ -10,8 +10,8 @@ from imageai.Detection import ObjectDetection
 import cv2 as cv
 import time
 
-COLONNES_FILTRES = 9
-LIGNES_FILTRES = 9
+COLONNES_FILTRES = 10
+LIGNES_FILTRES = 10
 FILTRES = [
     "bicycle",
     "car",
@@ -99,10 +99,10 @@ FILTRES = [
 class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
-        self.largeur_fenetre = 1300
-        self.hauteur_fenetre = 800
-        self.setGeometry(200, 100, 1300, 800)
-        self.setMaximumSize(self.largeur_fenetre, self.hauteur_fenetre)
+        self.largeur_fenetre = 1280
+        self.hauteur_fenetre = 720
+        self.setGeometry(200, 100, self.largeur_fenetre, self.hauteur_fenetre)
+        self.setMinimumSize(800, 600)
         self.setWindowTitle("Dash Detect Version 0.2")
         self.setWindowIcon(QIcon("logo.png"))
         self.gif = QtGui.QMovie("chargement.gif")
@@ -128,33 +128,43 @@ class MainWindow(QMainWindow):
         self.sections.setSpacing(5)
         self.sections.setObjectName("sections")
 
-        self.conteneur_video = QtWidgets.QGroupBox()
-        self.conteneur_video.setMaximumSize(QtCore.QSize(1280, 600))
+        # VIDEO
+        self.conteneur_video = QtWidgets.QGroupBox("Visualisation")
         self.conteneur_video.setObjectName("conteneur_video")
 
-        self.frame_video = QtWidgets.QLabel(self.conteneur_video)
-        self.frame_video.setGeometry(QtCore.QRect(200, 10, 871, 460))
-        self.frame_video.setAlignment(QtCore.Qt.AlignCenter)
-        self.frame_video.setText("Sélectionnez un fichier vidéo à analyser ou bien un flux en direct depuis une caméra")
+        self.layout_conteneur_video = QtWidgets.QHBoxLayout()
+        self.conteneur_video.setLayout(self.layout_conteneur_video)
+        self.layout_conteneur_video.setAlignment(QtCore.Qt.AlignCenter)
+
+        self.frame_video = QtWidgets.QLabel(
+            "Sélectionnez un fichier vidéo à analyser ou bien un flux en direct depuis une caméra",
+            self.conteneur_video
+        )
         self.frame_video.setScaledContents(True)
         self.frame_video.setObjectName("frame_video")
-
         self.gif_chargement = QtWidgets.QLabel(self.conteneur_video)
-        self.gif_chargement.setGeometry(1, 1, 2475, 100)
-        self.gif_chargement.setAlignment(QtCore.Qt.AlignCenter)
+        self.gif_chargement.setGeometry(5, 5, self.conteneur_video.width(), 80)
+        self.gif_chargement.setAlignment(QtCore.Qt.AlignLeft)
         self.gif_chargement.setObjectName("frame_gif_chargement")
 
-        self.conteneur_controles = QtWidgets.QGroupBox()
-        self.conteneur_controles.setMaximumSize(QtCore.QSize(1280, 300))
-        self.conteneur_controles.setObjectName("conteneur_controles")
+        self.layout_conteneur_video.addWidget(self.frame_video)
+        self.layout_conteneur_video.addWidget(self.gif_chargement)
 
-        self.controles_source = QtWidgets.QFrame(self.conteneur_controles)
-        self.controles_source.setGeometry(QtCore.QRect(10, 20, 151, 171))
-        self.controles_source.setFrameShape(QtWidgets.QFrame.StyledPanel)
-        self.controles_source.setFrameShadow(QtWidgets.QFrame.Raised)
+        # CONTROLES
+        self.conteneur_controles = QtWidgets.QGroupBox("Panneau de contrôle")
+        self.conteneur_controles.setObjectName("conteneur_controles")
+        self.conteneur_controles.setMaximumHeight(250)
+
+        self.layout_conteneur_controles = QtWidgets.QHBoxLayout()
+        self.conteneur_controles.setLayout(self.layout_conteneur_controles)
+        self.layout_conteneur_controles.setAlignment(QtCore.Qt.AlignCenter)
+
+        # SOURCES
+        self.controles_source = QtWidgets.QVBoxLayout()
         self.controles_source.setObjectName("controles_source")
-        self.btn_fichier = QtWidgets.QPushButton(self.controles_source)
-        self.btn_fichier.setGeometry(QtCore.QRect(10, 20, 131, 31))
+        self.controles_source.setAlignment(QtCore.Qt.AlignCenter)
+
+        self.btn_fichier = QtWidgets.QPushButton("Fichier vidéo")
         self.btn_fichier.setObjectName("btn_fichier")
         self.btn_fichier.clicked.connect(self.naviguerFichiers)
 
@@ -164,83 +174,68 @@ class MainWindow(QMainWindow):
         self.choix_modele.addItems(["Resnet 50", "Yolo V3", "Tiny Yolo V3"])
         self.choix_modele.setDisabled(True)"""
 
-        def afficher_information():
-            #print("ok message info")
-            msg = QMessageBox()
-            msg.setIcon(QMessageBox.Information)
-            msg.setText("Logiciel fait par Hy-Vong Georges Dit Rap et Guillaume d'Albignac")
-            msg.setInformativeText("| © 2021 | Cégep de Matane |")
-            msg.setWindowTitle("Informations sur Dash Detect")
-            msg.setStandardButtons(QMessageBox.Ok)
-            msg.exec()
-
-        self.btn_info = QtWidgets.QPushButton(self.conteneur_controles)
-        self.btn_info.setGeometry(QtCore.QRect(20, 260, 131, 31))
-        self.btn_info.setText("About ⓘ")
-        self.btn_info.setToolTip("Informations sur ce logiciel")
-        self.btn_info.setObjectName("bouton_informatioms")
-        self.btn_info.clicked.connect(afficher_information)
-
-        self.nom_fichier = QtWidgets.QLabel(self.controles_source)
-        self.nom_fichier.setGeometry(QtCore.QRect(10, 55, 131, 25))
+        self.nom_fichier = QtWidgets.QLabel()
         self.nom_fichier.setObjectName("nom_fichier")
         self.btn_fichier.setToolTip("Appuyer sur Stop pour relancer une analyse")
-
-        self.btn_source = QtWidgets.QPushButton(self.controles_source)
-        self.btn_source.setGeometry(QtCore.QRect(10, 90, 131, 31))
+        self.btn_source = QtWidgets.QPushButton("Source vidéo")
         self.btn_source.setObjectName("btn_source")
         self.btn_source.clicked.connect(self.chargerWebcam)
         self.btn_source.setToolTip("Appuyer sur Stop pour relancer une analyse")
+        self.btn_info = QtWidgets.QPushButton("À propos ⓘ")
+        self.btn_info.setToolTip("Informations sur ce logiciel")
+        self.btn_info.setObjectName("btn_informations")
+        self.btn_info.clicked.connect(self.afficher_information)
 
-        self.controles_lecture = QtWidgets.QFrame(self.conteneur_controles)
-        self.controles_lecture.setGeometry(QtCore.QRect(170, 20, 161, 171))
-        self.controles_lecture.setFrameShape(QtWidgets.QFrame.StyledPanel)
-        self.controles_lecture.setFrameShadow(QtWidgets.QFrame.Raised)
+        self.controles_source.addWidget(self.btn_fichier)
+        self.controles_source.addWidget(self.nom_fichier)
+        self.controles_source.addWidget(self.btn_source)
+        self.controles_source.addWidget(self.btn_info)
+
+        # LECTURE
+        self.controles_lecture = QtWidgets.QGridLayout()
         self.controles_lecture.setObjectName("controles_lecture")
-        self.btn_lecture = QtWidgets.QPushButton(self.controles_lecture)
-        self.btn_lecture.setGeometry(QtCore.QRect(10, 20, 61, 61))
+        self.controles_lecture.setAlignment(QtCore.Qt.AlignCenter)
+
+        self.btn_lecture = QtWidgets.QPushButton("Lire")
         self.btn_lecture.setObjectName("btn_lecture")
         self.btn_lecture.clicked.connect(self.threadVideo.mettreEnMarche)
         self.btn_lecture.setIcon(QIcon("play.ico"))
-
-        self.btn_pause = QtWidgets.QPushButton(self.controles_lecture)
-        self.btn_pause.setGeometry(QtCore.QRect(90, 20, 61, 61))
+        self.btn_pause = QtWidgets.QPushButton("Pause")
         self.btn_pause.setObjectName("btn_pause")
         self.btn_pause.clicked.connect(self.threadVideo.mettreEnPause)
         self.btn_pause.setIcon(QIcon("pause.ico"))
-
-        self.btn_stop = QtWidgets.QPushButton(self.controles_lecture)
-        self.btn_stop.setGeometry(QtCore.QRect(10, 90, 141, 31))
+        self.btn_stop = QtWidgets.QPushButton("Stop")
         self.btn_stop.setObjectName("btn_stop")
         self.btn_stop.clicked.connect(self.threadVideo.arreter)
         self.btn_stop.setIcon(QIcon("stop.ico"))
 
+        self.controles_lecture.addWidget(self.btn_lecture, 0, 0)
+        self.controles_lecture.addWidget(self.btn_pause, 0, 1)
+        self.controles_lecture.addWidget(self.btn_stop, 1, 0, 1, 2)
 
-        self.controles_filtres = QtWidgets.QGroupBox(self.conteneur_controles)
-        self.controles_filtres.setGeometry(QtCore.QRect(340, 20, 931, 271))
+        # FILTRES
+        self.controles_filtres = QtWidgets.QGroupBox("Filtres de détection")
         self.controles_filtres.setObjectName("controles_filtres")
 
-        self.tous_filtre = QtWidgets.QCheckBox(self.controles_filtres)
-        self.tous_filtre.setGeometry(QtCore.QRect(20, 70, 50, 20))
+        self.layout_filtres = QtWidgets.QHBoxLayout()
+        self.controles_filtres.setLayout(self.layout_filtres)
+        self.layout_filtres.setAlignment(QtCore.Qt.AlignCenter)
+
+        self.tous_filtre = QtWidgets.QCheckBox("Tous")
         self.tous_filtre.setObjectName("tous_filtre")
-
         self.tous_filtre.stateChanged.connect(self.actionnerTousLesFiltres)
-
-        # self.filtres = QtWidgets.QFrame(self.controles_filtres)
-        # self.filtres.setGeometry(QtCore.QRect(170, 20, 161, 271))
-        # self.filtres.setObjectName("filtres")
+        self.filtres = QtWidgets.QGridLayout()
+        self.filtres.setSpacing(10)
+        self.filtres.setObjectName("filtres")
         self.construireCheckboxesFiltres()
 
-        # Attribution des noms
-        self.conteneur_video.setTitle("Visualisation")
-        self.conteneur_controles.setTitle("Panneau de contrôle")
-        self.btn_fichier.setText("Fichier vidéo")
-        self.btn_source.setText("Source vidéo")
-        #self.btn_lecture.setText("Lire")
-        #self.btn_pause.setText("Pause")
-        #self.btn_stop.setText("Stop")
-        self.controles_filtres.setTitle("Filtres de détection")
-        self.tous_filtre.setText("Tous")
+        self.layout_filtres.addWidget(self.tous_filtre)
+        self.layout_filtres.addLayout(self.filtres)
+
+        # PLACEMENT CONTROLES
+        self.layout_conteneur_controles.addLayout(self.controles_source, 1)
+        self.layout_conteneur_controles.addLayout(self.controles_lecture, 1)
+        self.layout_conteneur_controles.addWidget(self.controles_filtres, 5)
 
         self.sections.addWidget(self.conteneur_video)
         self.sections.addWidget(self.conteneur_controles)
@@ -255,16 +250,20 @@ class MainWindow(QMainWindow):
             for j in range(COLONNES_FILTRES):
                 if index_filtre >= len(FILTRES):
                     return
-                x_offset = 90 * (j + 1)
-                y_offset = 25 * (i + 1)
-                nouveau_filtre = QtWidgets.QCheckBox(self.controles_filtres)
-                nouveau_filtre.setGeometry(QtCore.QRect(x_offset, y_offset, 85, 20))
+                # x_offset = 90 * (j + 1)
+                # y_offset = 25 * (i + 1)
+                nouveau_filtre = QtWidgets.QCheckBox(FILTRES[index_filtre])
+                # nouveau_filtre.setGeometry(QtCore.QRect(x_offset, y_offset, 85, 20))
                 nouveau_filtre.setObjectName("filtre_" + FILTRES[index_filtre])
-                nouveau_filtre.setText(FILTRES[index_filtre])
+
                 # Si une checkbox change d'état, les filtres de détection sont modifiés
                 nouveau_filtre.stateChanged.connect(
                     lambda etat, checkbox=nouveau_filtre: self.threadVideo.definirFiltres(etat, checkbox)
                 )
+
+                # Ajout dans le layout grille self.filtres
+                self.filtres.addWidget(nouveau_filtre, i, j)
+
                 self.checkboxes_filtres.append(nouveau_filtre)
                 index_filtre += 1
 
@@ -289,6 +288,7 @@ class MainWindow(QMainWindow):
         # print("chargerWebcam")
         camera = cv.VideoCapture(0, cv.CAP_DSHOW)
         self.threadVideo.video = camera
+        self.nom_fichier.setText("")
         self.threadpool.start(self.threadVideo)
         self.entrerEnChargement()
 
@@ -314,7 +314,7 @@ class MainWindow(QMainWindow):
         hauteur, largeur, canaux = image_rgb.shape
         octets_par_ligne = canaux * largeur
         image_format_qt = QtGui.QImage(image_rgb.data, largeur, hauteur, octets_par_ligne, QtGui.QImage.Format_RGB888)
-        image_redimensionnee = image_format_qt.scaled(self.largeur_fenetre, self.hauteur_fenetre, QtCore.Qt.KeepAspectRatio)
+        image_redimensionnee = image_format_qt.scaled(self.conteneur_video.width(), self.conteneur_video.height(), QtCore.Qt.KeepAspectRatio)
         return QtGui.QPixmap.fromImage(image_redimensionnee)
 
     # CONTROLES DES FILTRES
@@ -322,6 +322,15 @@ class MainWindow(QMainWindow):
         coche = True if QtCore.Qt.Checked == etat else False
         for filtre in self.checkboxes_filtres:
             filtre.setChecked(coche)
+
+    def afficher_information(self):
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Information)
+        msg.setText("Logiciel fait par Hy-Vong Georges Dit Rap et Guillaume d'Albignac")
+        msg.setInformativeText("| © 2021 | Cégep de Matane |")
+        msg.setWindowTitle("Informations sur Dash Detect")
+        msg.setStandardButtons(QMessageBox.Ok)
+        msg.exec()
 
 
 # Les signaux sont définis dans une classe séparée car il faut qu'il soient lancé par un QObject
@@ -339,9 +348,9 @@ class ThreadDetectionVideo(QtCore.QRunnable):
         self.detecteur = ObjectDetection()
         self.video = None
         self.font = cv.FONT_HERSHEY_DUPLEX
-        self.detecteur.setModelTypeAsRetinaNet()
-        self.detecteur.setModelPath(os.path.join(self.execution_path, "resnet50_coco_best_v2.1.0.h5"))
-        self.detecteur.loadModel(detection_speed="fast")
+        self.detecteur.setModelTypeAsYOLOv3()
+        self.detecteur.setModelPath(os.path.join(self.execution_path, "yolo.h5"))
+        self.detecteur.loadModel(detection_speed="flash")
 
         self.en_pause = False
         self.est_arrete = False
