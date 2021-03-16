@@ -344,8 +344,8 @@ class ThreadDetectionVideo(QtCore.QRunnable):
         self.detecteur = ObjectDetection()
         self.video = None
         self.font = cv.FONT_HERSHEY_DUPLEX
-        self.detecteur.setModelTypeAsYOLOv3()
-        self.detecteur.setModelPath(os.path.join(self.execution_path, "yolo.h5"))
+        self.detecteur.setModelTypeAsRetinaNet()
+        self.detecteur.setModelPath(os.path.join(self.execution_path, "resnet50_coco_best_v2.1.0.h5"))
         self.detecteur.loadModel(detection_speed="flash")
 
         self.en_pause = False
