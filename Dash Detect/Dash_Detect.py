@@ -103,9 +103,9 @@ class MainWindow(QMainWindow):
         self.hauteur_fenetre = 720
         self.setGeometry(200, 100, self.largeur_fenetre, self.hauteur_fenetre)
         self.setMinimumSize(800, 600)
-        self.setWindowTitle("Dash Detect Version 0.2")
-        self.setWindowIcon(QIcon("logo.png"))
-        self.gif = QtGui.QMovie("chargement.gif")
+        self.setWindowTitle("Dash Detect Version 0.3")
+        self.setWindowIcon(QIcon("img/logo.png"))
+        self.gif = QtGui.QMovie("img/chargement.gif")
 
         self.threadpool = QtCore.QThreadPool()
         self.threadVideo = ThreadDetectionVideo(self)
@@ -199,15 +199,15 @@ class MainWindow(QMainWindow):
         self.btn_lecture = QtWidgets.QPushButton("Lire")
         self.btn_lecture.setObjectName("btn_lecture")
         self.btn_lecture.clicked.connect(self.threadVideo.mettreEnMarche)
-        self.btn_lecture.setIcon(QIcon("play.ico"))
+        self.btn_lecture.setIcon(QIcon("img/play.ico"))
         self.btn_pause = QtWidgets.QPushButton("Pause")
         self.btn_pause.setObjectName("btn_pause")
         self.btn_pause.clicked.connect(self.threadVideo.mettreEnPause)
-        self.btn_pause.setIcon(QIcon("pause.ico"))
+        self.btn_pause.setIcon(QIcon("img/pause.ico"))
         self.btn_stop = QtWidgets.QPushButton("Stop")
         self.btn_stop.setObjectName("btn_stop")
         self.btn_stop.clicked.connect(self.threadVideo.arreter)
-        self.btn_stop.setIcon(QIcon("stop.ico"))
+        self.btn_stop.setIcon(QIcon("img/stop.ico"))
 
         self.controles_lecture.addWidget(self.btn_lecture, 0, 0)
         self.controles_lecture.addWidget(self.btn_pause, 0, 1)
@@ -250,12 +250,9 @@ class MainWindow(QMainWindow):
             for j in range(COLONNES_FILTRES):
                 if index_filtre >= len(FILTRES):
                     return
-                # x_offset = 90 * (j + 1)
-                # y_offset = 25 * (i + 1)
-                nouveau_filtre = QtWidgets.QCheckBox(FILTRES[index_filtre])
-                # nouveau_filtre.setGeometry(QtCore.QRect(x_offset, y_offset, 85, 20))
-                nouveau_filtre.setObjectName("filtre_" + FILTRES[index_filtre])
 
+                nouveau_filtre = QtWidgets.QCheckBox(FILTRES[index_filtre])
+                nouveau_filtre.setObjectName("filtre_" + FILTRES[index_filtre])
                 # Si une checkbox change d'état, les filtres de détection sont modifiés
                 nouveau_filtre.stateChanged.connect(
                     lambda etat, checkbox=nouveau_filtre: self.threadVideo.definirFiltres(etat, checkbox)
@@ -263,7 +260,6 @@ class MainWindow(QMainWindow):
 
                 # Ajout dans le layout grille self.filtres
                 self.filtres.addWidget(nouveau_filtre, i, j)
-
                 self.checkboxes_filtres.append(nouveau_filtre)
                 index_filtre += 1
 
